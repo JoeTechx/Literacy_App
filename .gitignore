@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+backend/node_modules/
+backend/dist/
+LiteracyApp/node_modules/
+LiteracyApp/.expo/
