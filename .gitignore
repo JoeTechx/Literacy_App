@@ -9,3 +9,6 @@ backend/node_modules/
 backend/dist/
 LiteracyApp/node_modules/
 LiteracyApp/.expo/
+Proposal Folder/
+backend/firebase-key.json
+backend/test-api.mjs

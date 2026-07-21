@@ -7,11 +7,13 @@ import { CreateUserDto } from '../users/dto/user.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Public route: anyone can register
   @Post('register')
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
 
+  // Public route: anyone can log in
   @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() loginDto: LoginDto) {

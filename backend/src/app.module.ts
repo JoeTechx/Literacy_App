@@ -1,32 +1,30 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ModulesModule } from './modules/modules.module';
 import { ProgressModule } from './progress/progress.module';
+import { FirebaseModule } from './firebase/firebase.module';
+import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
-    // ── Environment Variables (loads .env automatically)
-    ConfigModule.forRoot({
-      isGlobal: true,  // Available in every module without re-importing
-    }),
+    // Loads .env variables globally across all modules
+    ConfigModule.forRoot({ isGlobal: true }),
 
-    // ── MongoDB Connection (async so it reads from .env)
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
-      }),
-      inject: [ConfigService],
-    }),
+    // Firebase connection using firebase-key.json
+    FirebaseModule,
 
-    // ── Feature Modules
+    // Feature modules
     AuthModule,
     UsersModule,
     ModulesModule,
     ProgressModule,
+  ],
+  providers: [
+    // Registers RolesGuard globally so it applies automatically to all routes
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

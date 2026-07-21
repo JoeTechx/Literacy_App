@@ -32,11 +32,12 @@ export class AuthService {
   }
 
   private generateToken(user: any) {
-    const payload = { email: user.email, sub: user._id, role: user.role };
+    // Note: Firebase uses .id instead of Mongoose's ._id
+    const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,

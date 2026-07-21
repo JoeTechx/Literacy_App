@@ -1,34 +1,61 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request,
+} from '@nestjs/common';
 import { ModulesService } from './modules.service';
 import { CreateModuleItemDto, UpdateModuleItemDto } from './dto/modules.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../users/dto/user.dto';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('modules')
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  findAll() {
-    return this.modulesService.findAll();
+  // Student: get all modules assigned to them
+  @Roles(UserRole.STUDENT)
+  @Get('my-modules')
+  getMyModules(@Request() req) {
+    return this.modulesService.findByAssignedStudent(req.user.userId);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get(':moduleId')
-  findByModuleId(@Param('moduleId') moduleId: string) {
-    return this.modulesService.findByModuleId(Number(moduleId));
+  // Teacher: get all modules they have created
+  @Roles(UserRole.TEACHER)
+  @Get('my-content')
+  getMyContent(@Request() req) {
+    return this.modulesService.findByTeacher(req.user.userId);
   }
 
-  // Typically these would be protected by a RolesGuard for TEACHER only
-  @UseGuards(JwtAuthGuard)
+  // Teacher: create a new learning module (auto-links to the teacher)
+  @Roles(UserRole.TEACHER)
   @Post()
-  create(@Body() createDto: CreateModuleItemDto) {
-    return this.modulesService.create(createDto);
+  create(@Request() req, @Body() createDto: CreateModuleItemDto) {
+    return this.modulesService.create(req.user.userId, createDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // Teacher: assign an existing module to one of their students
+  @Roles(UserRole.TEACHER)
+  @Post(':moduleDocId/assign/:studentId')
+  assignToStudent(
+    @Request() req,
+    @Param('moduleDocId') moduleDocId: string,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.modulesService.assignToStudent(req.user.userId, moduleDocId, studentId);
+  }
+
+  // Teacher: edit module content they own
+  @Roles(UserRole.TEACHER)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDto: UpdateModuleItemDto) {
-    return this.modulesService.update(id, updateDto);
+  update(@Request() req, @Param('id') id: string, @Body() updateDto: UpdateModuleItemDto) {
+    return this.modulesService.update(req.user.userId, id, updateDto);
+  }
+
+  // Teacher: delete a module they own
+  @Roles(UserRole.TEACHER)
+  @Delete(':id')
+  remove(@Request() req, @Param('id') id: string) {
+    return this.modulesService.remove(req.user.userId, id);
   }
 }

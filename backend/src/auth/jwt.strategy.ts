@@ -17,11 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  // This runs on every protected request to validate the token is still valid
   async validate(payload: any) {
     const user = await this.usersService.findById(payload.sub);
     if (!user) {
-      throw new UnauthorizedException('User no longer exists');
+      throw new UnauthorizedException('User account no longer exists');
     }
+    // Attach userId, email, and role to req.user for use in controllers and guards
     return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }

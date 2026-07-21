@@ -1,5 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { UserRole } from './user.schema';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber } from 'class-validator';
+
+export enum UserRole {
+  STUDENT = 'student',
+  TEACHER = 'teacher',
+  ADMIN = 'admin',
+}
 
 export class CreateUserDto {
   @IsString()
@@ -20,6 +25,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsNumber()
+  age?: number; // Added to support age-specific module assignment
+
+  @IsOptional()
+  @IsString()
+  teacherId?: string; // Set by admin when assigning a student to a teacher
 }
 
 export class UpdateUserDto {
@@ -30,6 +43,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsNumber()
+  age?: number;
 
   @IsOptional()
   totalPoints?: number;
