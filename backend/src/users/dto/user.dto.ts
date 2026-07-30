@@ -1,9 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber, IsBoolean } from 'class-validator';
 
 export enum UserRole {
-  STUDENT = 'student',
-  TEACHER = 'teacher',
+  SUPERADMIN = 'superadmin',
   ADMIN = 'admin',
+  TEACHER = 'teacher',
+  STUDENT = 'student',
 }
 
 export class CreateUserDto {
@@ -33,6 +34,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   teacherId?: string; // Set by admin when assigning a student to a teacher
+
+  @IsOptional()
+  @IsBoolean()
+  isVerified?: boolean;
+
+  @IsOptional()
+  @IsString()
+  verificationToken?: string;
 }
 
 export class UpdateUserDto {
@@ -50,4 +59,12 @@ export class UpdateUserDto {
 
   @IsOptional()
   totalPoints?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isVerified?: boolean;
+
+  @IsOptional()
+  @IsString()
+  verificationToken?: string | null;
 }

@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from './src/store/useAuthStore';
 
 import AuthScreen from './src/screens/AuthScreen';
 import Dashboard from './src/screens/Dashboard';
@@ -18,21 +18,25 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('dashboard');
 
+  const { rehydrate, setAuth, logout } = useAuthStore();
+
   useEffect(() => {
     checkLoginState();
   }, []);
 
   const checkLoginState = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
+      // Rehydrate token from encrypted SecureStore on app boot
+      const token = await rehydrate();
       if (token) {
+        // Token exists in secure storage — set it in memory and verify with backend
+        useAuthStore.setState({ token });
         const response = await userAPI.getProfile();
         setUser(response.data);
       }
     } catch (e) {
       console.log('Token invalid or expired', e);
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
+      await logout();
     } finally {
       setIsLoading(false);
     }
@@ -44,8 +48,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('userData');
+    await logout();
     setUser(null);
   };
 

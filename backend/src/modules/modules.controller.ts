@@ -45,17 +45,17 @@ export class ModulesController {
     return this.modulesService.assignToStudent(req.user.userId, moduleDocId, studentId);
   }
 
-  // Teacher: edit module content they own
-  @Roles(UserRole.TEACHER)
+  // Teacher & Admins: edit module content they own (Admins can edit any)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id')
   update(@Request() req, @Param('id') id: string, @Body() updateDto: UpdateModuleItemDto) {
-    return this.modulesService.update(req.user.userId, id, updateDto);
+    return this.modulesService.update(req.user.userId, req.user.role, id, updateDto);
   }
 
-  // Teacher: delete a module they own
-  @Roles(UserRole.TEACHER)
+  // Teacher & Admins: delete a module they own (Admins can delete any)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':id')
   remove(@Request() req, @Param('id') id: string) {
-    return this.modulesService.remove(req.user.userId, id);
+    return this.modulesService.remove(req.user.userId, req.user.role, id);
   }
 }

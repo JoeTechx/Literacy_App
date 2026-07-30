@@ -1,5 +1,5 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../store/useAuthStore';
 
 // Your computer's local IP address so the phone can connect to the local NestJS backend
 const API_URL = 'http://192.168.0.26:3000/api/v1';
@@ -11,10 +11,10 @@ const api = axios.create({
   },
 });
 
-// Intercept requests to add the Authorization token automatically
+// Intercept requests to add the Authorization token from Zustand in-memory store
 api.interceptors.request.use(
-  async (config) => {
-    const token = await AsyncStorage.getItem('userToken');
+  (config) => {
+    const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

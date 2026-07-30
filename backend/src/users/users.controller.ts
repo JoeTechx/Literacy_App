@@ -3,7 +3,7 @@ import {
   UseGuards, Request, Delete, ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UpdateUserDto, UserRole } from './dto/user.dto';
+import { CreateUserDto, UpdateUserDto, UserRole } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -19,22 +19,22 @@ export class UsersController {
     return this.usersService.findById(req.user.userId);
   }
 
-  // Admin only: get all users on the platform
-  @Roles(UserRole.ADMIN)
+  // Admin & Superadmin: get all users on the platform
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
-  // Admin only: get all teachers
-  @Roles(UserRole.ADMIN)
+  // Admin & Superadmin: get all teachers
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Get('teachers')
   findAllTeachers() {
     return this.usersService.findByRole(UserRole.TEACHER);
   }
 
-  // Admin only: get all students on the platform
-  @Roles(UserRole.ADMIN)
+  // Admin & Superadmin: get all students on the platform
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Get('students')
   findAllStudents() {
     return this.usersService.findByRole(UserRole.STUDENT);
@@ -47,8 +47,8 @@ export class UsersController {
     return this.usersService.findStudentsByTeacher(req.user.userId);
   }
 
-  // Admin only: assign a student to a teacher
-  @Roles(UserRole.ADMIN)
+  // Admin & Superadmin: assign a student to a teacher
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Patch(':studentId/assign-teacher/:teacherId')
   assignStudentToTeacher(
     @Param('studentId') studentId: string,
@@ -63,10 +63,29 @@ export class UsersController {
     return this.usersService.update(req.user.userId, updateUserDto);
   }
 
-  // Admin only: delete any user account
-  @Roles(UserRole.ADMIN)
+  // Admin & Superadmin: delete any user account
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  async remove(@Request() req, @Param('id') id: string) {
+    if (req.user.role === UserRole.ADMIN) {
+      const targetUser = await this.usersService.findById(id);
+      if (targetUser.role === UserRole.SUPERADMIN || targetUser.role === UserRole.ADMIN) {
+        throw new ForbiddenException('Admins cannot delete SUPERADMIN or other ADMIN accounts.');
+      }
+    }
     return this.usersService.remove(id);
+  }
+
+  // Admin & Superadmin: Onboard a new user securely
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+  @Post()
+  create(@Request() req, @Body() createUserDto: CreateUserDto) {
+    // A regular ADMIN cannot create a SUPERADMIN or another ADMIN
+    if (req.user.role === UserRole.ADMIN) {
+      if (createUserDto.role === UserRole.SUPERADMIN || createUserDto.role === UserRole.ADMIN) {
+        throw new ForbiddenException('Admins can only create TEACHER and STUDENT accounts.');
+      }
+    }
+    return this.usersService.create(createUserDto);
   }
 }

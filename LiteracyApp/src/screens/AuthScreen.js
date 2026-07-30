@@ -5,7 +5,7 @@ import {
   Keyboard, ActivityIndicator, ScrollView
 } from 'react-native';
 import { authAPI } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../store/useAuthStore';
 
 const AVATARS = [
   { id: 'lion', icon: '🦁', label: 'Lion' },
@@ -22,6 +22,8 @@ export default function AuthScreen({ onLoginSuccess }) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0].id);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const handleSubmit = async () => {
     if (!email || !password) {
@@ -49,7 +51,7 @@ export default function AuthScreen({ onLoginSuccess }) {
           name: name.trim(),
           email: email.trim(),
           password: password,
-          role: 'student', // Default to student for the literacy app
+          role: 'student',
           avatar: selectedAvatar,
           age: parseInt(age) || null
         });
@@ -57,9 +59,8 @@ export default function AuthScreen({ onLoginSuccess }) {
 
       const { access_token, user } = response.data;
       
-      // Save token to device storage
-      await AsyncStorage.setItem('userToken', access_token);
-      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      // Save token to encrypted native keychain via Zustand store
+      await setAuth(access_token, user);
       
       // Notify App.js to switch screens
       onLoginSuccess(user);

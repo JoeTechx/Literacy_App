@@ -2,10 +2,15 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto, UpdateUserDto, UserRole } from './dto/user.dto';
 import { FirebaseService } from '../firebase/firebase.service';
+import { EmailService } from '../email/email.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
-  constructor(private firebase: FirebaseService) {}
+  constructor(
+    private firebase: FirebaseService,
+    private emailService: EmailService,
+  ) {}
 
   private get collection() {
     return this.firebase.getDb().collection('users');
@@ -23,19 +28,32 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
+    const role = createUserDto.role || UserRole.STUDENT;
+    
+    // Generate verification token if it's a staff member
+    const isStaff = role === UserRole.SUPERADMIN || role === UserRole.ADMIN || role === UserRole.TEACHER;
+    const verificationToken = isStaff ? crypto.randomBytes(32).toString('hex') : null;
+
     const userDoc = {
       name: createUserDto.name,
       email: createUserDto.email,
       password: hashedPassword,
-      role: createUserDto.role || UserRole.STUDENT,
+      role: role,
       totalPoints: 0,
       avatar: createUserDto.avatar || null,
       age: createUserDto.age || null,
       teacherId: createUserDto.teacherId || null,
+      isVerified: !isStaff, // Students are auto-verified
+      verificationToken: verificationToken,
       createdAt: new Date().toISOString(),
     };
 
     const docRef = await this.collection.add(userDoc);
+    
+    if (isStaff && verificationToken) {
+      await this.emailService.sendVerificationEmail(createUserDto.email, verificationToken, createUserDto.name);
+    }
+    
     const { password, ...safeUser } = userDoc;
     return { id: docRef.id, ...safeUser };
   }
@@ -70,6 +88,12 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<any | null> {
     const snapshot = await this.collection.where('email', '==', email).limit(1).get();
+    if (snapshot.empty) return null;
+    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+  }
+
+  async findByVerificationToken(token: string): Promise<any | null> {
+    const snapshot = await this.collection.where('verificationToken', '==', token).limit(1).get();
     if (snapshot.empty) return null;
     return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
   }

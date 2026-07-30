@@ -91,7 +91,7 @@ export class ModulesService {
     return { id: updated.id, ...updated.data() };
   }
 
-  async update(teacherId: string, id: string, updateDto: UpdateModuleItemDto): Promise<any> {
+  async update(teacherId: string, userRole: string, id: string, updateDto: UpdateModuleItemDto): Promise<any> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -99,8 +99,9 @@ export class ModulesService {
       throw new NotFoundException(`Module with ID ${id} not found`);
     }
 
-    // Ownership check: a teacher can only edit their own content
-    if (doc.data()!.teacherId !== teacherId) {
+    // Admins & Superadmins can edit any module; Teachers can only edit their own
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    if (!isAdmin && doc.data()!.teacherId !== teacherId) {
       throw new ForbiddenException('You can only edit modules that you created');
     }
 
@@ -109,7 +110,7 @@ export class ModulesService {
     return { id: updated.id, ...updated.data() };
   }
 
-  async remove(teacherId: string, id: string): Promise<{ message: string }> {
+  async remove(teacherId: string, userRole: string, id: string): Promise<{ message: string }> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -117,8 +118,9 @@ export class ModulesService {
       throw new NotFoundException(`Module with ID ${id} not found`);
     }
 
-    // Ownership check: a teacher can only delete their own content
-    if (doc.data()!.teacherId !== teacherId) {
+    // Admins & Superadmins can delete any module; Teachers can only delete their own
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    if (!isAdmin && doc.data()!.teacherId !== teacherId) {
       throw new ForbiddenException('You can only delete modules that you created');
     }
 

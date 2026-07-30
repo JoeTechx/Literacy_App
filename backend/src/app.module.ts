@@ -5,7 +5,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ModulesModule } from './modules/modules.module';
 import { ProgressModule } from './progress/progress.module';
+import { UploadModule } from './upload/upload.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { EmailModule } from './email/email.module';
 import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
@@ -21,6 +23,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     UsersModule,
     ModulesModule,
     ProgressModule,
+    UploadModule,
+    EmailModule,
   ],
   providers: [
     // Registers RolesGuard globally so it applies automatically to all routes
