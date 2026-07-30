@@ -12,10 +12,12 @@ export class ModulesService {
 
   async create(teacherId: string, createDto: CreateModuleItemDto): Promise<any> {
     const docRef = await this.collection.add({
-      ...createDto,
-      teacherId,         // Teacher who created this content
-      ageGroup: createDto.ageGroup || 'all', // The age group this is targeted for
-      assignedTo: [],    // Legacy: keeping for backward compatibility
+      title: createDto.title,
+      type: createDto.type || 'tap_the_sound',
+      content: createDto.content,
+      ageGroup: createDto.ageGroup || 'all',
+      teacherId,
+      assignedTo: [],
       isActive: true,
       createdAt: new Date().toISOString(),
     });

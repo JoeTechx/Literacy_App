@@ -1,17 +1,18 @@
-import { IsNotEmpty, IsNumber, IsObject, IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsArray, IsIn } from 'class-validator';
 
 export class CreateModuleItemDto {
-  @IsNumber()
-  @IsNotEmpty()
-  moduleId: number;
-
   @IsString()
   @IsNotEmpty()
   title: string;
 
-  @IsObject()
+  @IsString()
+  @IsOptional()
+  @IsIn(['tap_the_sound', 'tracing', 'match'])
+  type?: string;
+
+  @IsArray()
   @IsNotEmpty()
-  content: any;
+  content: any[];
 
   @IsString()
   @IsOptional()
@@ -24,10 +25,10 @@ export class UpdateModuleItemDto {
   title?: string;
 
   @IsOptional()
-  @IsObject()
-  content?: any;
+  @IsArray()
+  content?: any[];
 
   @IsOptional()
-  @IsBoolean()
+  @IsString()
   isActive?: boolean;
 }
