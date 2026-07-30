@@ -32,7 +32,11 @@ function LoginForm() {
       }
 
       setAuth(access_token, user);
-      router.push('/');
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        router.push('/admin');
+      } else {
+        router.push('/teacher');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to connect. Please check your credentials.');
     } finally {
