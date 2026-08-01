@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useAuthStore } from './src/store/useAuthStore';
 
 import AuthScreen from './src/screens/AuthScreen';
@@ -16,7 +16,7 @@ import { userAPI } from './src/services/api';
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [selectedModule, setSelectedModule] = useState(null);
 
   const { rehydrate, setAuth, logout } = useAuthStore();
 
@@ -44,7 +44,7 @@ export default function App() {
 
   const handleLoginSuccess = (loggedInUser) => {
     setUser(loggedInUser);
-    setCurrentScreen('dashboard');
+    setSelectedModule(null);
   };
 
   const handleLogout = async () => {
@@ -70,13 +70,33 @@ export default function App() {
     );
   }
 
-  // Render modules based on currentScreen state
-  if (currentScreen === 'module_1') return <Module1 onBack={() => setCurrentScreen('dashboard')} />;
-  if (currentScreen === 'module_2') return <Module2 onBack={() => setCurrentScreen('dashboard')} />;
-  if (currentScreen === 'module_3') return <Module3 onBack={() => setCurrentScreen('dashboard')} />;
-  if (currentScreen === 'module_4') return <Module4 onBack={() => setCurrentScreen('dashboard')} />;
-  if (currentScreen === 'module_5') return <Module5 onBack={() => setCurrentScreen('dashboard')} />;
-  if (currentScreen === 'module_6') return <Module6 onBack={() => setCurrentScreen('dashboard')} />;
+  // Render modules based on selectedModule state
+  if (selectedModule) {
+    if (selectedModule.type === 'tap_the_sound') {
+      return <Module1 moduleData={selectedModule} onBack={() => setSelectedModule(null)} />;
+    }
+    if (selectedModule.type === 'tracing') {
+      return <Module2 moduleData={selectedModule} onBack={() => setSelectedModule(null)} />;
+    }
+    if (selectedModule.type === 'match') {
+      return <Module3 moduleData={selectedModule} onBack={() => setSelectedModule(null)} />;
+    }
+
+    // Fallback for unimplemented types
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 18, color: '#333', marginBottom: 20 }}>
+          Module type "{selectedModule.type?.replace(/_/g, ' ')}" is under construction!
+        </Text>
+        <TouchableOpacity 
+          style={{ backgroundColor: '#FF6B6B', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }}
+          onPress={() => setSelectedModule(null)}
+        >
+          <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Default to Dashboard
   return (
@@ -85,12 +105,8 @@ export default function App() {
       <Dashboard 
         user={user}
         onLogout={handleLogout}
-        onSelectModule={(id) => {
-          if (id >= 1 && id <= 6) {
-            setCurrentScreen(`module_${id}`);
-          } else {
-            alert(`Module ${id} is under construction! Check back soon.`);
-          }
+        onSelectModule={(mod) => {
+          setSelectedModule(mod);
         }}
       />
     </>

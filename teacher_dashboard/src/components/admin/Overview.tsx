@@ -4,10 +4,14 @@ import { useState, useEffect } from 'react';
 import api from '@/utils/api';
 import { Users, GraduationCap, BookOpen, Activity, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '@/store/useAuthStore';
+import SuperadminSummary from './SuperadminSummary';
+import AdminSummary from './AdminSummary';
 
 export default function AdminOverview() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -74,15 +78,8 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      <div className="mt-12 glass-panel p-8">
-        <div className="flex items-center gap-4 text-blue-400 mb-4">
-          <BookOpen className="h-8 w-8" />
-          <h4 className="text-xl font-semibold text-foreground">Welcome to the Command Center</h4>
-        </div>
-        <p className="text-muted-foreground max-w-2xl mb-6">
-          Use the sidebar to navigate to User Management to onboard new teachers and students, or head to Content Moderation to oversee learning modules.
-        </p>
-      </div>
+      {user?.role === 'superadmin' ? <SuperadminSummary /> : <AdminSummary />}
+      
     </div>
   );
 }

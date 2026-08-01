@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber, IsBoolean } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber, IsBoolean, IsObject } from 'class-validator';
 
 export enum UserRole {
   SUPERADMIN = 'superadmin',
@@ -12,8 +12,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   name: string;
 
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @IsString()
   @MinLength(6, { message: 'Password must be at least 6 characters' })
@@ -67,4 +68,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   verificationToken?: string | null;
+
+  @IsOptional()
+  @IsObject()
+  settings?: Record<string, any>;
 }

@@ -4,12 +4,8 @@ import {
 } from 'react-native';
 import * as Speech from 'expo-speech';
 
-// --- STATIC DATA (will be replaced by backend API call) ---
-const QUESTIONS = [
-  { id: 1, image: '🐱', word: 'CAT',  options: ['BAT', 'CAT'], correct: 'CAT' },
-  { id: 2, image: '🐶', word: 'DOG',  options: ['HOG', 'DOG'], correct: 'DOG' },
-  { id: 3, image: '🌞', word: 'SUN',  options: ['SUN', 'GUN'], correct: 'SUN' },
-];
+import { Image } from 'react-native';
+import { progressAPI } from '../services/api';
 
 // Supervisor color-coding: word letters each colored by vowel/consonant rule
 const LETTER_COLORS = {
@@ -29,7 +25,7 @@ function ColoredWord({ word }) {
   );
 }
 
-export default function Module3({ onBack }) {
+export default function Module3({ moduleData, onBack }) {
   const [isMuted, setIsMuted] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -38,7 +34,27 @@ export default function Module3({ onBack }) {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const successScale = useRef(new Animated.Value(1)).current;
 
-  const q = QUESTIONS[questionIndex];
+  // Warm up TTS engine on mount
+  React.useEffect(() => {
+    Speech.speak(' ', { volume: 0 });
+    return () => Speech.stop();
+  }, []);
+
+  // Use dynamic content or fallback
+  const questions = moduleData?.content && moduleData.content.length > 0 
+    ? moduleData.content 
+    : [{ word: 'CAT', image_url: '' }];
+    
+  const q = questions[questionIndex];
+  const targetWord = (q.word || 'CAT').toUpperCase();
+  
+  // Create a wrong option dynamically if not provided
+  const wrongWord = q.wrong ? q.wrong.toUpperCase() : (targetWord === 'CAT' ? 'BAT' : 'CAT');
+  
+  // Ensure options are shuffled
+  const [options, setOptions] = useState(() => {
+    return Math.random() > 0.5 ? [targetWord, wrongWord] : [wrongWord, targetWord];
+  });
 
   const speak = (text) => {
     if (!isMuted) { Speech.stop(); Speech.speak(text, { rate: 0.8, pitch: 1.2 }); }
@@ -50,17 +66,33 @@ export default function Module3({ onBack }) {
     speak(option.toLowerCase());
   };
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!selected) return;
     setAnswered(true);
-    if (selected === q.correct) {
+    if (selected === targetWord) {
       speak('Correct! Well done!');
       Animated.sequence([
         Animated.spring(successScale, { toValue: 1.3, useNativeDriver: true }),
         Animated.spring(successScale, { toValue: 1.0, useNativeDriver: true }),
       ]).start();
+      
+      try {
+        if (moduleData?.id) {
+          await progressAPI.submitProgress(moduleData.id, 10, 1, true);
+        }
+      } catch (err) {
+        console.log('Error submitting success progress:', err.response?.data || err.message);
+      }
+      
     } else {
-      speak(`Oops! The answer is ${q.correct.toLowerCase()}`);
+      speak(`Oops! The answer is ${targetWord.toLowerCase()}`);
+      try {
+        if (moduleData?.id) {
+          await progressAPI.submitProgress(moduleData.id, 0, 1, false);
+        }
+      } catch (err) {
+        console.log('Error submitting failure progress:', err.response?.data || err.message);
+      }
       Animated.sequence([
         Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
@@ -71,8 +103,15 @@ export default function Module3({ onBack }) {
   };
 
   const handleNext = () => {
-    if (questionIndex + 1 < QUESTIONS.length) {
-      setQuestionIndex(i => i + 1);
+    if (questionIndex + 1 < questions.length) {
+      const nextIndex = questionIndex + 1;
+      setQuestionIndex(nextIndex);
+      
+      const nextQ = questions[nextIndex];
+      const nextTarget = (nextQ.word || 'CAT').toUpperCase();
+      const nextWrong = nextQ.wrong ? nextQ.wrong.toUpperCase() : (nextTarget === 'CAT' ? 'BAT' : 'CAT');
+      setOptions(Math.random() > 0.5 ? [nextTarget, nextWrong] : [nextWrong, nextTarget]);
+      
       setSelected(null);
       setAnswered(false);
       successScale.setValue(1);
@@ -82,9 +121,11 @@ export default function Module3({ onBack }) {
     }
   };
 
-  const correctAnswered = answered && selected === q.correct;
-  const wrongAnswered   = answered && selected !== q.correct;
-  const progress        = ((questionIndex + 1) / QUESTIONS.length) * 100;
+  const correctAnswered = answered && selected === targetWord;
+  const wrongAnswered   = answered && selected !== targetWord;
+  const currentProgress = (questionIndex / questions.length) * 100;
+  const targetProgress = ((questionIndex + 1) / questions.length) * 100;
+  const progress = correctAnswered ? targetProgress : currentProgress;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,18 +146,22 @@ export default function Module3({ onBack }) {
 
       {/* Image Focus */}
       <Animated.View style={[styles.imageCard, { transform: [{ scale: successScale }] }]}>
-        <Text style={styles.imageEmoji}>{q.image}</Text>
-        <TouchableOpacity onPress={() => speak(q.word.toLowerCase())}>
+        {q.image_url ? (
+          <Image source={{ uri: q.image_url }} style={{ width: 120, height: 120, borderRadius: 20 }} resizeMode="cover" />
+        ) : (
+          <Text style={styles.imageEmoji}>{q.image || '🖼️'}</Text>
+        )}
+        <TouchableOpacity onPress={() => speak(targetWord.toLowerCase())}>
           <Text style={styles.speakHint}>🔊 Hear it</Text>
         </TouchableOpacity>
       </Animated.View>
 
       {/* Word Options */}
       <Animated.View style={[styles.optionsRow, { transform: [{ translateX: shakeAnim }] }]}>
-        {q.options.map((option) => {
+        {options.map((option) => {
           const isSelected = selected === option;
-          const isCorrect  = answered && option === q.correct;
-          const isWrong    = answered && isSelected && option !== q.correct;
+          const isCorrect  = answered && option === targetWord;
+          const isWrong    = answered && isSelected && option !== targetWord;
           return (
             <TouchableOpacity
               key={option}
@@ -150,7 +195,7 @@ export default function Module3({ onBack }) {
       ) : (
         <TouchableOpacity style={styles.checkBtn} onPress={handleNext} activeOpacity={0.8}>
           <Text style={styles.checkBtnText}>
-            {questionIndex + 1 < QUESTIONS.length ? 'NEXT ➡️' : 'FINISH 🏆'}
+            {questionIndex + 1 < questions.length ? 'NEXT ➡️' : 'FINISH 🏆'}
           </Text>
         </TouchableOpacity>
       )}

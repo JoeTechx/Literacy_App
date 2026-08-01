@@ -3,21 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, BookOpen, LogOut, LayoutDashboard, ShieldAlert, GraduationCap } from 'lucide-react';
+import { Users, BookOpen, LogOut, LayoutDashboard, ShieldAlert, GraduationCap, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 // Admin Components
 import AdminOverview from '@/components/admin/Overview';
 import AdminUserManagement from '@/components/admin/UserManagement';
 import AdminContentModeration from '@/components/admin/ContentModeration';
+import SettingsView from '@/components/settings/SettingsView';
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, _hasHydrated } = useAuthStore();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
+    if (!_hasHydrated) return;
+
     if (!user) {
       router.push('/login');
       return;
@@ -27,14 +30,14 @@ export default function AdminDashboard() {
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, router, _hasHydrated]);
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) return null;
+  if (!_hasHydrated || !user || (user.role !== 'admin' && user.role !== 'superadmin')) return null;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -72,6 +75,12 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('admin_modules')}
           >
             <BookOpen size={20} /> Content Moderation
+          </button>
+          <button 
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${activeTab === 'settings' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <Settings size={20} /> Settings
           </button>
         </nav>
 
@@ -113,6 +122,7 @@ export default function AdminDashboard() {
               {activeTab === 'overview' && 'Command Center'}
               {activeTab === 'users' && 'User Management'}
               {activeTab === 'admin_modules' && 'Content Moderation'}
+              {activeTab === 'settings' && 'Settings'}
             </h1>
             <p className="text-muted-foreground mt-1">
               Manage the entire platform ecosystem.
@@ -134,6 +144,11 @@ export default function AdminDashboard() {
           {activeTab === 'admin_modules' && (
             <motion.div key="admin_modules" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <AdminContentModeration />
+            </motion.div>
+          )}
+          {activeTab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <SettingsView />
             </motion.div>
           )}
         </AnimatePresence>

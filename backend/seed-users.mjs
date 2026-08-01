@@ -64,7 +64,8 @@ async function seedUser(name, email, password, role) {
     console.log(`✅ ${role.toUpperCase()} created successfully! ID: ${docRef.id}`);
 
     if (isStaff && token && envVars['SMTP_USER']) {
-      const verifyUrl = `http://localhost:3000/api/v1/auth/verify?token=${token}`;
+      const backendUrl = envVars['BACKEND_URL'] || 'http://localhost:3000';
+      const verifyUrl = `${backendUrl}/api/v1/auth/verify?token=${token}`;
       await transporter.sendMail({
         from: `"Literacy App" <${envVars['SMTP_USER']}>`,
         to: email,

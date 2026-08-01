@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI } from '@/utils/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Lock, Mail, ShieldAlert, BadgeCheck } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, BadgeCheck, Eye, EyeOff } from 'lucide-react';
 
 function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -23,7 +24,7 @@ function LoginForm() {
     setError('');
 
     try {
-      const response = await authAPI.login(email, password);
+      const response = await authAPI.login(identifier, password);
       const { access_token, user } = response.data;
       
       if (user.role !== 'teacher' && user.role !== 'admin' && user.role !== 'superadmin') {
@@ -95,15 +96,15 @@ function LoginForm() {
           </AnimatePresence>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-muted-foreground ml-1">EMAIL ADDRESS</label>
+            <label className="text-sm font-semibold text-muted-foreground ml-1">EMAIL ADDRESS OR USERNAME</label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 text-muted-foreground w-5 h-5" />
               <input 
-                type="email" 
+                type="text" 
                 className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                placeholder="teacher@school.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="teacher@school.edu or Username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -114,13 +115,21 @@ function LoginForm() {
             <div className="relative">
               <Lock className="absolute left-3 top-3 text-muted-foreground w-5 h-5" />
               <input 
-                type="password" 
-                className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                type={showPassword ? 'text' : 'password'} 
+                className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-12 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 

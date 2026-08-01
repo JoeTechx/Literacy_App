@@ -13,6 +13,13 @@ import { UserRole } from '../users/dto/user.dto';
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
+  // Admin: get ALL modules on the platform (for Content Moderation)
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+  @Get()
+  getAllModules() {
+    return this.modulesService.findAll();
+  }
+
   // Student: get all modules assigned to them
   @Roles(UserRole.STUDENT)
   @Get('my-modules')

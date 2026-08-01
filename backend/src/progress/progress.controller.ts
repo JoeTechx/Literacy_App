@@ -36,8 +36,6 @@ export class ProgressController {
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Get('all')
   getAllProgress() {
-    // In a real app, this might require a new service method to fetch all progress logs
-    // For now, returning a mock or calling a service method you'd need to implement
-    return { message: "Global progress data endpoint available to Admins" };
+    return this.progressService.getAllProgress();
   }
 }

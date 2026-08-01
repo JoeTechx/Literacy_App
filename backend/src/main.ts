@@ -17,9 +17,12 @@ async function bootstrap() {
     }),
   );
 
-  // ── CORS: allow the React Native app to call this API
+  // ── CORS: allow the web dashboard and React Native app to call this API
+  // Set CORS_ORIGIN in .env. For React Native, '*' is required as RN doesn't use CORS.
+  // For production web, set this to your deployed frontend domain.
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
   app.enableCors({
-    origin: '*',  // In production, restrict to your domain
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });

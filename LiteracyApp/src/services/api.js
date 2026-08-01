@@ -1,8 +1,10 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Your computer's local IP address so the phone can connect to the local NestJS backend
-const API_URL = 'http://192.168.0.26:3000/api/v1';
+// API URL is set in .env as API_URL and injected via app.config.js extra.apiUrl
+// Change the value in .env to match your environment (device IP, emulator, or production URL)
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -26,7 +28,7 @@ api.interceptors.request.use(
 );
 
 export const authAPI = {
-  login: (email, password) => api.post('/auth/login', { email, password }),
+  login: (identifier, password) => api.post('/auth/login', { identifier, password }),
   register: (userData) => api.post('/auth/register', userData),
 };
 

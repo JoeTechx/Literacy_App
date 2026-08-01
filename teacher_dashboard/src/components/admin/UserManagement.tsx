@@ -86,6 +86,20 @@ export default function AdminUserManagement() {
     }
   };
 
+  const handleAssignTeacher = async (studentId: string, teacherId: string) => {
+    try {
+      // If teacherId is empty, we might want to unassign, but the backend currently only supports assigning. 
+      // For now, let's just call the assign endpoint.
+      if (!teacherId) return; // Optional: add an unassign endpoint on backend if needed
+      await api.patch(`/users/${studentId}/assign-teacher/${teacherId}`);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === studentId ? { ...u, teacherId } : u))
+      );
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to assign teacher.');
+    }
+  };
+
   const filtered = users.filter((u) => {
     const matchSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchRole = roleFilter === 'all' || u.role === roleFilter;
@@ -154,6 +168,8 @@ export default function AdminUserManagement() {
                   <th className="p-5 font-semibold text-sm text-muted-foreground uppercase tracking-wider">Role</th>
                   <th className="p-5 font-semibold text-sm text-muted-foreground uppercase tracking-wider">Verified</th>
                   <th className="p-5 font-semibold text-sm text-muted-foreground uppercase tracking-wider">Age</th>
+                  <th className="p-5 font-semibold text-sm text-muted-foreground uppercase tracking-wider">Teacher</th>
+                  <th className="p-5 font-semibold text-sm text-muted-foreground uppercase tracking-wider">Students</th>
                   <th className="p-5 font-semibold text-sm text-muted-foreground text-right uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -191,6 +207,31 @@ export default function AdminUserManagement() {
                     </td>
                     <td className="p-5">
                       <span className="text-sm text-muted-foreground">{u.age ?? '—'}</span>
+                    </td>
+                    <td className="p-5">
+                      {u.role === 'student' ? (
+                        <select
+                          value={u.teacherId || ''}
+                          onChange={(e) => handleAssignTeacher(u.id, e.target.value)}
+                          className="bg-background/50 border border-border rounded-lg py-1.5 px-2 text-xs text-foreground focus:border-blue-500 focus:outline-none transition-colors w-32"
+                        >
+                          <option value="" disabled>Select Teacher</option>
+                          {users.filter(t => t.role === 'teacher').map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-5">
+                      {u.role === 'teacher' ? (
+                        <span className="text-sm text-emerald-400 font-medium bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                          {users.filter(s => s.role === 'student' && s.teacherId === u.id).length} Assigned
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="p-5 text-right">
                       {u.id !== currentUser?.id &&

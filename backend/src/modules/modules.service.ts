@@ -31,7 +31,15 @@ export class ModulesService {
       .where('teacherId', '==', teacherId)
       .where('isActive', '==', true)
       .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const modules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this.enrichWithStudentCounts(modules);
+  }
+
+  async findAll(): Promise<any[]> {
+    // Admin-only: returns every module on the platform
+    const snapshot = await this.collection.get();
+    const modules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return this.enrichWithStudentCounts(modules);
   }
 
   private getAgeGroup(age: number): string {
@@ -39,6 +47,29 @@ export class ModulesService {
     if (age >= 8 && age <= 10) return '8-10';
     if (age >= 11 && age <= 12) return '11-12';
     return 'all';
+  }
+
+  private async enrichWithStudentCounts(modules: any[]): Promise<any[]> {
+    if (modules.length === 0) return modules;
+    
+    // Fetch all students to compute assignment counts
+    const studentsSnapshot = await this.firebase.getDb().collection('users').where('role', '==', 'student').get();
+    const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+
+    return modules.map(mod => {
+      let count = 0;
+      console.log(`[DEBUG] Checking module: ${mod.title} (${mod.ageGroup}) for teacher ${mod.teacherId}`);
+      for (const student of students) {
+        if (student.teacherId === mod.teacherId) {
+          const sAgeGroup = student.age ? this.getAgeGroup(Number(student.age)) : 'all';
+          console.log(`  -> Student ${student.name} (age ${student.age}): ageGroup parsed as ${sAgeGroup}`);
+          if (mod.ageGroup === 'all' || mod.ageGroup === sAgeGroup) {
+            count++;
+          }
+        }
+      }
+      return { ...mod, assignedStudentsCount: count };
+    });
   }
 
   async findByAssignedStudent(studentId: string): Promise<any[]> {

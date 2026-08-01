@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
-import { progressAPI } from '../services/api';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import * as Speech from 'expo-speech';
+import { progressAPI, modulesAPI } from '../services/api';
 
 const MODULES = [
   { id: 1, title: 'SOUNDS', subtitle: 'TAP SOUND', icon: '👂', color: '#FF9F43' },
@@ -19,20 +20,45 @@ const AVATARS = [
 
 export default function Dashboard({ user, onSelectModule, onLogout }) {
   const [totalPoints, setTotalPoints] = useState(user?.totalPoints || 0);
+  const [modules, setModules] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
-    // Fetch real progress from backend when dashboard mounts
-    const fetchProgress = async () => {
+    // Warm up TTS engine
+    Speech.speak(' ', { volume: 0 });
+    
+    // Fetch real progress and modules from backend when dashboard mounts
+    const fetchData = async () => {
       try {
         const res = await progressAPI.getProgress();
         // Calculate total score from all completed modules
         const score = res.data.reduce((sum, item) => sum + (item.score || 0), 0);
         setTotalPoints(score);
+
+        const modulesRes = await modulesAPI.getMyModules();
+        if (modulesRes.data && modulesRes.data.length > 0) {
+          const dynamicModules = modulesRes.data.map((mod, index) => ({
+             ...mod,
+             title: mod.title.toUpperCase(),
+             subtitle: mod.type ? mod.type.replace(/_/g, ' ').toUpperCase() : 'MODULE',
+             icon: MODULES[index % MODULES.length].icon,
+             color: MODULES[index % MODULES.length].color,
+          }));
+          setModules(dynamicModules);
+        } else {
+          setModules([]);
+        }
       } catch (e) {
-        console.log('Failed to fetch progress:', e);
+        console.log('Failed to fetch data:', e);
+        setModules([]);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProgress();
+    fetchData();
+    
+    return () => Speech.stop();
   }, []);
 
   const handleLogoutPress = () => {
@@ -46,6 +72,22 @@ export default function Dashboard({ user, onSelectModule, onLogout }) {
     );
   };
 
+  const handleAudioPress = () => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+    setIsSpeaking(true);
+    const greeting = `Welcome back, ${user?.name || 'Student'}! You have ${totalPoints} points! Let's choose a learning task.`;
+    Speech.speak(greeting, {
+      rate: 0.9,
+      pitch: 1.1,
+      onDone: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false)
+    });
+  };
+
   const userAvatar = AVATARS.find(a => a.id === user?.avatar) || AVATARS[0];
 
   return (
@@ -57,8 +99,8 @@ export default function Dashboard({ user, onSelectModule, onLogout }) {
         <View style={styles.pointsBadge}>
           <Text style={styles.pointsText}>⭐ {totalPoints} pts</Text>
         </View>
-        <TouchableOpacity style={styles.audioBtn}>
-           <Text style={styles.audioIcon}>🔊</Text>
+        <TouchableOpacity style={styles.audioBtn} onPress={handleAudioPress}>
+           <Text style={styles.audioIcon}>{isSpeaking ? '🔇' : '🔊'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -69,20 +111,32 @@ export default function Dashboard({ user, onSelectModule, onLogout }) {
         </View>
 
         <View style={styles.grid}>
-          {MODULES.map((mod) => (
-            <TouchableOpacity 
-              key={mod.id} 
-              style={[styles.moduleCard, { borderBottomColor: mod.color }]}
-              activeOpacity={0.8}
-              onPress={() => onSelectModule(mod.id)}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: mod.color + '20' }]}>
-                <Text style={styles.moduleIcon}>{mod.icon}</Text>
-              </View>
-              <Text style={styles.moduleTitle}>{mod.title}</Text>
-              <Text style={styles.moduleSubtitle}>{mod.subtitle}</Text>
-            </TouchableOpacity>
-          ))}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4ECDC4" />
+              <Text style={styles.loadingText}>Loading your tasks...</Text>
+            </View>
+          ) : modules && modules.length > 0 ? (
+            modules.map((mod) => (
+              <TouchableOpacity 
+                key={mod.id} 
+                style={[styles.moduleCard, { borderBottomColor: mod.color }]}
+                activeOpacity={0.8}
+                onPress={() => onSelectModule(mod)}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: mod.color + '20' }]}>
+                  <Text style={styles.moduleIcon}>{mod.icon}</Text>
+                </View>
+                <Text style={styles.moduleTitle}>{mod.title}</Text>
+                <Text style={styles.moduleSubtitle}>{mod.subtitle}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📭</Text>
+              <Text style={styles.emptyText}>No tasks assigned yet.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -107,5 +161,10 @@ const styles = StyleSheet.create({
   iconContainer: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   moduleIcon: { fontSize: 30 },
   moduleTitle: { fontSize: 16, fontWeight: '800', color: '#444', marginBottom: 4 },
-  moduleSubtitle: { fontSize: 12, fontWeight: '700', color: '#999', letterSpacing: 0.5 }
+  moduleSubtitle: { fontSize: 12, fontWeight: '700', color: '#999', letterSpacing: 0.5 },
+  loadingContainer: { width: '100%', alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
+  loadingText: { marginTop: 10, fontSize: 16, color: '#888', fontWeight: '600' },
+  emptyContainer: { width: '100%', alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
+  emptyIcon: { fontSize: 40, marginBottom: 10 },
+  emptyText: { fontSize: 18, color: '#888', fontWeight: '600' }
 });

@@ -65,4 +65,9 @@ export class ProgressService {
     const updatedDoc = await docRef.get();
     return { id: updatedDoc.id, ...updatedDoc.data() };
   }
+
+  async getAllProgress(): Promise<any[]> {
+    const snapshot = await this.collection.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
 }

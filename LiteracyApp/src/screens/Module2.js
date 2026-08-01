@@ -14,11 +14,27 @@ const CANVAS_SIZE = width - 40;
 const LETTER_COLOR = '#4ECDC4';
 const LETTER_GUIDE_OPACITY = 0.15;
 
-export default function Module2({ onBack }) {
+export default function Module2({ moduleData, onBack }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const currentItem = moduleData?.content?.[currentIndex] || { letter: 'm' };
+  const targetLetter = currentItem.letter?.toLowerCase() || 'm';
+
   const [isMuted, setIsMuted] = useState(false);
   const [tracedPath, setTracedPath] = useState([]);
   const [isComplete, setIsComplete] = useState(false);
   const svgRef = useRef(null);
+
+  const totalItems = moduleData?.content?.length || 1;
+  const currentProgress = (currentIndex / totalItems) * 100;
+  const targetProgress = ((currentIndex + 1) / totalItems) * 100;
+  const [answered, setAnswered] = useState(false);
+  const progress = answered ? targetProgress : currentProgress;
+
+  // Warm up TTS engine on mount
+  React.useEffect(() => {
+    Speech.speak(' ', { volume: 0 });
+    return () => Speech.stop();
+  }, []);
 
   const speak = (text) => {
     if (!isMuted) {
@@ -56,7 +72,7 @@ export default function Module2({ onBack }) {
   const handleClear = () => {
     setTracedPath([]);
     setIsComplete(false);
-    speak("Let's try again. Trace the letter m.");
+    speak(`Let's try again. Trace the letter ${targetLetter}.`);
   };
 
   const handleCheck = async () => {
@@ -64,14 +80,27 @@ export default function Module2({ onBack }) {
       speak("Keep tracing! Follow the dotted letter.");
       return;
     }
-    speak("Fantastic! You traced the letter m! Plus 10 points!");
-    alert("Fantastic! 🎉 +10 Points and 1 Naira Icon!");
+    setAnswered(true);
+    speak(`Fantastic! You traced the letter ${targetLetter}! Plus 10 points!`);
     
     // Submit progress to the backend
     try {
-      await progressAPI.submitProgress(2, 10, 1, true);
+      if (moduleData?.id) {
+        await progressAPI.submitProgress(moduleData.id, 10, 1, true);
+      }
     } catch (err) {
-      console.log('Failed to save progress', err);
+      console.log('Failed to save success progress', err.response?.data || err.message);
+    }
+
+    if (moduleData?.content && currentIndex < moduleData.content.length - 1) {
+      setTimeout(() => {
+        setCurrentIndex(currentIndex + 1);
+        setTracedPath([]);
+        setIsComplete(false);
+        setAnswered(false);
+      }, 1500);
+    } else {
+      setTimeout(() => onBack(), 1500);
     }
   };
 
@@ -83,7 +112,7 @@ export default function Module2({ onBack }) {
           <Text style={styles.closeIcon}>✖</Text>
         </TouchableOpacity>
         <View style={styles.progressBarBg}>
-          <View style={styles.progressBarFill} />
+          <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
         </View>
         <TouchableOpacity onPress={() => { Speech.stop(); setIsMuted(m => !m); }}>
           <Text style={styles.audioToggle}>{isMuted ? '🔇' : '🔊'}</Text>
@@ -92,8 +121,8 @@ export default function Module2({ onBack }) {
 
       {/* Instruction */}
       <View style={styles.instructionArea}>
-        <Text style={styles.instructionText}>Trace the letter 'm'</Text>
-        <TouchableOpacity onPress={() => speak("m, mmm, m")} style={styles.listenBtn}>
+        <Text style={styles.instructionText}>Trace the letter '{targetLetter}'</Text>
+        <TouchableOpacity onPress={() => speak(`The letter is ${targetLetter}`)} style={styles.listenBtn}>
           <Text style={styles.listenIcon}>🔊 Hear Sound</Text>
         </TouchableOpacity>
       </View>
@@ -101,7 +130,7 @@ export default function Module2({ onBack }) {
       {/* Tracing Canvas */}
       <View style={styles.canvasContainer} {...panResponder.panHandlers}>
         <Svg height={CANVAS_SIZE} width={CANVAS_SIZE}>
-          {/* Guide letter 'm' — faded, child traces over it */}
+          {/* Guide letter — faded, child traces over it */}
           <SvgText
             x={CANVAS_SIZE / 2}
             y={CANVAS_SIZE * 0.75}
@@ -111,7 +140,7 @@ export default function Module2({ onBack }) {
             fill={LETTER_COLOR}
             fillOpacity={LETTER_GUIDE_OPACITY}
           >
-            m
+            {targetLetter}
           </SvgText>
 
           {/* Dotted guide border hint */}
@@ -127,7 +156,7 @@ export default function Module2({ onBack }) {
             strokeOpacity={0.3}
             strokeDasharray="10,8"
           >
-            m
+            {targetLetter}
           </SvgText>
 
           {/* The child's drawn trace path */}
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
   closeBtn: { backgroundColor: '#FFF', padding: 12, borderRadius: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   closeIcon: { fontSize: 16, fontWeight: '900', color: '#FF6B6B' },
   progressBarBg: { flex: 1, height: 14, backgroundColor: '#EAEAEA', borderRadius: 10, marginHorizontal: 15 },
-  progressBarFill: { width: '50%', height: '100%', backgroundColor: '#4ECDC4', borderRadius: 10 },
+  progressBarFill: { height: '100%', backgroundColor: '#4ECDC4', borderRadius: 10 },
   audioToggle: { fontSize: 24 },
 
   instructionArea: { alignItems: 'center', marginTop: 30, marginBottom: 15 },

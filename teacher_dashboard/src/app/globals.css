@@ -1,18 +1,38 @@
 @import "tailwindcss";
 
-@theme {
+/* ─── Light Mode (default) ──────────────────────────────── */
+:root {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #f8fafc;
+  --color-card-foreground: #0f172a;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #f8fafc;
+  --color-secondary: #e2e8f0;
+  --color-secondary-foreground: #0f172a;
+  --color-accent: #f59e0b;
+  --color-accent-foreground: #f8fafc;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f8fafc;
+  --color-muted: #94a3b8;
+  --color-muted-foreground: #64748b;
+  --color-border: #e2e8f0;
+}
+
+/* ─── Dark Mode ─────────────────────────────────────────── */
+.dark {
   --color-background: #0f172a;
   --color-foreground: #f8fafc;
   --color-card: #1e293b;
-  --color-card-foreground: #f8fafc;
+  --color-card-foreground: #0f172a;
   --color-primary: #3b82f6;
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: #f8fafc;
   --color-secondary: #334155;
-  --color-secondary-foreground: #f8fafc;
+  --color-secondary-foreground: #0f172a;
   --color-accent: #f59e0b;
-  --color-accent-foreground: #ffffff;
+  --color-accent-foreground: #f8fafc;
   --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
+  --color-destructive-foreground: #f8fafc;
   --color-muted: #475569;
   --color-muted-foreground: #94a3b8;
   --color-border: #334155;
@@ -24,9 +44,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Glassmorphism utility for the premium dark theme */
+/* Glassmorphism — adapts automatically to current theme variables */
 .glass-panel {
   background: rgba(30, 41, 59, 0.7);
   backdrop-filter: blur(12px);
@@ -34,4 +55,10 @@ body {
   border: 1px solid var(--color-border);
   border-radius: 1rem;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Light-mode glass override */
+:root:not(.dark) .glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
 }

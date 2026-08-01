@@ -1,9 +1,9 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateProgressDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  moduleId: number;
+  moduleId: string;
 
   @IsOptional()
   @IsNumber()
